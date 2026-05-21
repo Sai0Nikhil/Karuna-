@@ -1,0 +1,10 @@
+import { Language } from './types';
+
+export const LANGUAGES = [
+  { value: Language.ENGLISH, label: 'English', code: 'en-US' },
+  { value: Language.TELUGU, label: 'తెలుగు (Telugu)', code: 'te-IN' },
+  { value: Language.HINDI, label: 'हिन्दी (Hindi)', code: 'hi-IN' },
+];
+
+export const MODEL_NAME = 'gemini-2.5-flash';
+export const IMAGE_MODEL_NAME = 'gemini-2.5-flash-image';
