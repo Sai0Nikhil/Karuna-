@@ -121,26 +121,137 @@ export const CitizenReportFlow: React.FC = () => {
     }
   }, [imageDataUrl, description, language, location]);
 
-  const handleSaveCase = () => {
+  const handleSaveCase = async () => {
     if (!analysis || !imageDataUrl || !location) return;
     const sev = severityFromAnalysis(analysis);
     const loc: CaseLocation = typeof location === 'string'
       ? { label: location }
       : { lat: location.lat, lon: location.lon, label: `${location.lat.toFixed(4)}, ${location.lon.toFixed(4)}` };
 
-    const c = createCase({
-      reporterName: reporterName.trim() || 'Anonymous Citizen',
-      reporterContact: reporterContact.trim() || undefined,
-      imageDataUrl,
-      location: loc,
-      species: analysis.animal,
-      injuryType: analysis.probableCondition.split(' ')[0],
-      severity: sev,
-      probableCondition: analysis.probableCondition,
-      firstAidSteps: analysis.firstAidSteps,
-      estimatedCostInr: estimateCostInr(sev),
+    try {
+      setIsLoading(true);
+      const c = await createCase({
+        reporterName: reporterName.trim() || 'Anonymous Citizen',
+        reporterContact: reporterContact.trim() || undefined,
+        imageDataUrl,
+        location: loc,
+        species: analysis.animal,
+        injuryType: analysis.probableCondition.split(' ')[0],
+        severity: sev,
+        probableCondition: analysis.probableCondition,
+        firstAidSteps: analysis.firstAidSteps,
+        estimatedCostInr: estimateCostInr(sev),
+      });
+      setSavedCaseId(c.id);
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit case.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const downloadCertificate = () => {
+    if (!savedCaseId) return;
+    const jspdfModule = (window as any).jspdf;
+    if (!jspdfModule) {
+      alert('PDF library is loading, please try again in a moment.');
+      return;
+    }
+    const { jsPDF } = jspdfModule;
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'px',
+      format: [640, 480]
     });
-    setSavedCaseId(c.id);
+
+    const name = reporterName.trim() || 'Anonymous Compassionate Citizen';
+    const dateStr = new Date().toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    // Draw background color
+    doc.setFillColor(248, 250, 253);
+    doc.rect(0, 0, 640, 480, 'F');
+
+    // Draw gold borders
+    doc.setDrawColor(217, 119, 6);
+    doc.setLineWidth(6);
+    doc.rect(20, 20, 600, 440);
+
+    doc.setDrawColor(15, 118, 110);
+    doc.setLineWidth(1.5);
+    doc.rect(26, 26, 588, 428);
+
+    // Title
+    doc.setTextColor(15, 118, 110);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.text('CERTIFICATE OF APPRECIATION', 320, 75, { align: 'center' });
+
+    // Sub-title
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(12);
+    doc.text('THIS CERTIFICATE IS PROUDLY PRESENTED TO', 320, 110, { align: 'center' });
+
+    // Recipient Name
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text(name, 320, 155, { align: 'center' });
+
+    // Inner underline for name
+    doc.setDrawColor(15, 118, 110);
+    doc.setLineWidth(1);
+    doc.line(180, 165, 460, 165);
+
+    // Appreciation Text
+    doc.setTextColor(71, 85, 105);
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(12);
+    const appreciationText = 
+      "For showing outstanding compassion, care, and prompt action in reporting " +
+      "an animal in distress to the Karuṇā Rescue Network. Your immediate support " +
+      "has directly contributed to saving a life and making the world a kinder place.";
+    const splitText = doc.splitTextToSize(appreciationText, 480);
+    doc.text(splitText, 320, 200, { align: 'center' });
+
+    // Details Box
+    doc.setFillColor(241, 245, 249);
+    doc.rect(80, 275, 480, 50, 'F');
+    doc.setDrawColor(226, 231, 240);
+    doc.rect(80, 275, 480, 50);
+
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(10);
+    doc.text('CASE IDENTIFIER', 180, 292, { align: 'center' });
+    doc.text('DATE OF SUBMISSION', 440, 292, { align: 'center' });
+
+    doc.setTextColor(15, 118, 110);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(savedCaseId, 180, 312, { align: 'center' });
+    doc.text(dateStr, 440, 312, { align: 'center' });
+
+    // Signature Area
+    doc.setDrawColor(15, 118, 110);
+    doc.setLineWidth(1);
+    doc.line(260, 385, 380, 385);
+    
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('Karuṇā Team Signatory', 320, 398, { align: 'center' });
+
+    // Logo / Seal stamp
+    doc.setTextColor(217, 119, 6);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('🐾', 320, 422, { align: 'center' });
+
+    doc.save(`Karuna_Certificate_${savedCaseId}.pdf`);
   };
 
   const toggleListen = () => {
@@ -287,15 +398,23 @@ export const CitizenReportFlow: React.FC = () => {
                 <h3 className="font-semibold text-green-900">Case submitted ✓</h3>
                 <p className="text-sm text-green-800 mt-1">
                   Case ID <code className="bg-white px-2 py-0.5 rounded">{savedCaseId}</code> is now visible to the NGO dashboard.
-                  Track updates here:
+                  Thank you for your compassion! You can download your appreciation certificate below:
                 </p>
               </div>
-              <button
-                onClick={() => navigate({ name: 'case', caseId: savedCaseId })}
-                className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 whitespace-nowrap"
-              >
-                Track case →
-              </button>
+              <div className="flex gap-2 whitespace-nowrap">
+                <button
+                  onClick={downloadCertificate}
+                  className="bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700"
+                >
+                  Download Certificate 📜
+                </button>
+                <button
+                  onClick={() => navigate({ name: 'case', caseId: savedCaseId })}
+                  className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700"
+                >
+                  Track case →
+                </button>
+              </div>
             </div>
           )}
 
