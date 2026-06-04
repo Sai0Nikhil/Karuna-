@@ -1,7 +1,7 @@
 {
-  "name": "copy-of-karuṇā-1-2",
+  "name": "karuna-claude",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "react": "^19.2.0",
-    "@google/genai": "^1.27.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "@anthropic-ai/sdk": "^0.39.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

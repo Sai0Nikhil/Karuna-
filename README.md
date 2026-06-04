@@ -1,20 +1,61 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 🐾 KARUNA — Compassion-A-Thon 3.0 MVP
 
-# Run and deploy your AI Studio app
+**AI-assisted community-driven street-animal rescue platform.**
 
-This contains everything you need to run your app locally.
+End-to-end demo based on the copyright document: *"Karuna: A Community Driven Smartphone Application for Location Aware Image Based Injury Detection, Reporting and Rescue of Injured Animals"* (Vukka Sai Nikhil & Debabrata Bej, April 2026).
 
-View your app in AI Studio: https://ai.studio/apps/e584f10e-71eb-48d3-875f-d8082cb42de1
+All statistics on the landing page are sourced directly from the copyright document (pilot targets: Vijayawada + 2 urban centres).
 
-## Run Locally
+---
 
-**Prerequisites:**  Node.js
+## Quick start
 
+```bash
+cd C:\Karuna_GAS\Karuna-
+npm install
+npm run dev
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Open **http://localhost:3000** — starts on the landing page.
+
+---
+
+## Routes
+
+| URL | View |
+|---|---|
+| `#/home` | Landing page (default) |
+| `#/citizen` | Citizen report flow — upload photo, AI triage, submit case |
+| `#/ngo` | NGO dashboard — case queue, dispatch, status tracking |
+| `#/donate` | Donations — all fundable cases |
+| `#/donate/<caseId>` | Per-case donation ledger |
+| `#/adopt` | Adoption listings |
+| `#/adopt/<caseId>` | Per-case adoption applications |
+| `#/case/<caseId>` | Case detail timeline |
+
+---
+
+## AI (optional)
+
+Set `ANTHROPIC_API_KEY` in `.env` for real Claude calls (vision triage, Sita chat, first-aid instructions). Without the key, the app uses local mock data and works fully offline.
+
+---
+
+## Key numbers from the copyright document
+
+| Metric | Target |
+|---|---|
+| AI detection accuracy (YOLOv8) | 97% |
+| Median rescue response time | <2 hours (from ~24h) |
+| Treatment success rate | ≥85% |
+| Verified adoption placement | ≥40% of recovered animals |
+| Donor retention (re-donate within 12 mo) | ≥70% |
+| AI triage return time | 3–5 seconds |
+| API p95 response time | <500 ms |
+| Pilot cities | Vijayawada + 2 urban centres |
+
+---
+
+## Built with
+
+React 19 · TypeScript · Vite · Tailwind CSS · Anthropic Claude SDK

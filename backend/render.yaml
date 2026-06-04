@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: karuna-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.10
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://karuna.vercel.app,http://localhost:3000,http://localhost:5173
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: karuna-db
+          property: connectionString
+
+databases:
+  - name: karuna-db
+    plan: free
+    databaseName: karuna
+    user: karuna
