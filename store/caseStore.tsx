@@ -72,6 +72,7 @@ interface CaseStoreApi {
   addDonation: (id: string, donation: Omit<Donation, 'id' | 'ts'>) => void;
   applyForAdoption: (id: string, app: Omit<AdoptionApplication, 'id' | 'ts' | 'status'>) => void;
   decideAdoption: (caseId: string, appId: string, status: 'approved' | 'rejected', actor: string) => void;
+  addCheckin: (caseId: string, appId: string, text: string, photoUrl?: string) => void;
   resetToSeed: () => void;
   loadDemoData: () => void;
   clearAll: () => void;
@@ -264,6 +265,39 @@ export const CaseStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             type: 'adoption_decision',
             actor,
             details: `Adoption application ${status} (${app.applicantName})`,
+          });
+          return next;
+        }),
+      );
+    },
+
+    addCheckin: (caseId, appId, text, photoUrl) => {
+      setCases((prev) =>
+        prev.map((c) => {
+          if (c.id !== caseId) return c;
+          const next = cloneCase(c);
+          const app = next.adoptionApplications.find((a) => a.id === appId);
+          if (!app) return c;
+          const logEntry = {
+            date: nowIso(),
+            text: text || '',
+            photoUrl: photoUrl || '',
+          };
+          let currentLogs = [];
+          try {
+            if (app.checkinsLogs && app.checkinsLogs !== '[]') {
+              currentLogs = JSON.parse(app.checkinsLogs);
+            }
+          } catch (e) {
+            console.warn('Failed to parse checkinsLogs', e);
+          }
+          currentLogs.push(logEntry);
+          app.checkinsLogs = JSON.stringify(currentLogs);
+          next.events.push({
+            ts: nowIso(),
+            type: 'note',
+            actor: 'Adopter',
+            details: `Submitted post-placement check-in: ${text}`,
           });
           return next;
         }),

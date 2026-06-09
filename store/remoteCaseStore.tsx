@@ -44,6 +44,7 @@ interface CaseStoreApi {
   addDonation: (id: string, donation: Omit<Donation, 'id' | 'ts'>) => void;
   applyForAdoption: (id: string, app: Omit<AdoptionApplication, 'id' | 'ts' | 'status'>) => void;
   decideAdoption: (caseId: string, appId: string, status: 'approved' | 'rejected', actor: string) => void;
+  addCheckin: (caseId: string, appId: string, text: string, photoUrl?: string) => void;
   resetToSeed: () => void;
   loadDemoData: () => void;
   clearAll: () => void;
@@ -121,19 +122,24 @@ export const RemoteCaseStoreProvider: React.FC<{ children: React.ReactNode }> = 
       api.addNote(id, actor, note).catch(err => alert('Add note failed: ' + err.message));
     },
 
-    addDonation: (id, donation) => {
-      api.addDonation(id, donation.donorName, donation.amountInr, donation.message)
+     addDonation: (id, donation) => {
+      api.addDonation(id, donation.donorName, donation.amountInr, donation.message, donation.paymentMethod, donation.billOffsetDetails)
         .catch(err => alert('Donation failed: ' + err.message));
     },
 
     applyForAdoption: (id, app) => {
-      api.applyForAdoption(id, app.applicantName, app.contact, app.reason)
+      api.applyForAdoption(id, app.applicantName, app.contact, app.reason, app.adopterIdUrl)
         .catch(err => alert('Adoption apply failed: ' + err.message));
     },
 
     decideAdoption: (caseId, appId, status, actor) => {
-      api.decideAdoption(caseId, appId, status, actor)
+      api.decideAdoption(caseId, appId, status)
         .catch(err => alert('Decide adoption failed: ' + err.message));
+    },
+
+    addCheckin: (caseId, appId, text, photoUrl) => {
+      api.addCheckin(appId, text, photoUrl)
+        .catch(err => alert('Adoption check-in failed: ' + err.message));
     },
 
     resetToSeed: () => {

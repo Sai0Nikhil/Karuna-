@@ -5,7 +5,7 @@ import { useRouter } from '../store/router';
 import { Case, Severity, STATUS_LABEL } from '../types';
 import {
   Empty, ProgressBar, SeverityChip, StatusChip,
-  formatInr, relativeTime,
+  formatInr, relativeTime, downloadPdfLedger,
 } from './shared';
 import { AutoDispatchPanel } from './AutoDispatchPanel';
 
@@ -189,12 +189,20 @@ const CaseDetailNGO: React.FC<{ c: Case }> = ({ c }) => {
         </button>
       )}
 
-      <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm">
-        <div className="flex justify-between mb-1">
-          <span>Funding</span>
-          <span>{formatInr(c.donations.reduce((s, d) => s + d.amountInr, 0))} / {formatInr(c.estimatedCostInr)}</span>
+      <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm flex justify-between items-center gap-4">
+        <div className="flex-1">
+          <div className="flex justify-between mb-1">
+            <span>Funding</span>
+            <span>{formatInr(c.donations.reduce((s, d) => s + d.amountInr, 0))} / {formatInr(c.estimatedCostInr)}</span>
+          </div>
+          <ProgressBar value={c.donations.reduce((s, d) => s + d.amountInr, 0) / Math.max(1, c.estimatedCostInr)} />
         </div>
-        <ProgressBar value={c.donations.reduce((s, d) => s + d.amountInr, 0) / Math.max(1, c.estimatedCostInr)} />
+        <button
+          onClick={() => downloadPdfLedger(c)}
+          className="bg-teal-600 hover:bg-teal-700 text-white font-medium py-1.5 px-3 rounded text-xs flex items-center gap-1 whitespace-nowrap"
+        >
+          📥 Export Ledger
+        </button>
       </div>
 
       <div className="space-y-2">

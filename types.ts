@@ -95,6 +95,8 @@ export interface Donation {
   donorName: string;
   amountInr: number;
   message?: string;
+  paymentMethod?: string;
+  billOffsetDetails?: string;
 }
 
 export interface AdoptionApplication {
@@ -104,6 +106,8 @@ export interface AdoptionApplication {
   contact: string;
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
+  adopterIdUrl?: string;
+  checkinsLogs?: string;
 }
 
 export interface Case {

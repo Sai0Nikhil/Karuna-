@@ -135,19 +135,24 @@ export const api = {
       method: 'POST', body: JSON.stringify({ actor, note }),
     }),
 
-  addDonation: (id: string, donorName: string, amountInr: number, message?: string) =>
-    request<Case>(`/api/cases/${id}/donations`, {
-      method: 'POST', body: JSON.stringify({ donorName, amountInr, message }),
+  addDonation: (id: string, donorName: string, amountInr: number, message?: string, paymentMethod?: string, billOffsetDetails?: string) =>
+    request<any>(`/api/donations/case/${id}`, {
+      method: 'POST', body: JSON.stringify({ donorName, amountInr, message, paymentMethod, billOffsetDetails }),
     }),
 
-  applyForAdoption: (id: string, applicantName: string, contact: string, reason: string) =>
-    request<Case>(`/api/cases/${id}/adoption-apply`, {
-      method: 'POST', body: JSON.stringify({ applicantName, contact, reason }),
+  applyForAdoption: (id: string, applicantName: string, contact: string, reason: string, adopterIdUrl?: string) =>
+    request<any>(`/api/adoptions/case/${id}/apply`, {
+      method: 'POST', body: JSON.stringify({ applicantName, contact, reason, adopterIdUrl }),
     }),
 
-  decideAdoption: (caseId: string, appId: string, status: 'approved' | 'rejected', actor = 'NGO Admin') =>
-    request<Case>(`/api/cases/${caseId}/adoption/${appId}`, {
-      method: 'PATCH', body: JSON.stringify({ status, actor }),
+  decideAdoption: (caseId: string, appId: string, status: 'approved' | 'rejected') =>
+    request<any>(`/api/adoptions/${appId}`, {
+      method: 'PUT', body: JSON.stringify({ status }),
+    }),
+
+  addCheckin: (appId: string, text: string, photoUrl?: string) =>
+    request<any>(`/api/adoptions/${appId}/checkin`, {
+      method: 'POST', body: JSON.stringify({ text, photoUrl }),
     }),
 
   // ─── AI proxy ──────────────────────────────────────────────────

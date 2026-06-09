@@ -105,3 +105,149 @@ export const Empty: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     {children}
   </div>
 );
+
+export const downloadPdfLedger = (c: Case) => {
+  const { jsPDF } = (window as any).jspdf || {};
+  if (!jsPDF) {
+    alert('jsPDF library is not loaded. Please try again.');
+    return;
+  }
+
+  const doc = new jsPDF();
+
+  // Set colors
+  const teal = '#0F766E';
+  const dark = '#1E293B';
+  const gray = '#475569';
+
+  // Title block
+  doc.setFillColor(15, 118, 110); // Teal
+  doc.rect(0, 0, 210, 40, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(24);
+  doc.text('KARUNA ANIMAL RESCUE', 20, 25);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('DONATION AUDIT & CASE LEDGER', 20, 32);
+
+  // Case Metadata
+  doc.setTextColor(25, 35, 50);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text(`CASE REPORT #K${c.id}`, 20, 55);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(70, 80, 95);
+
+  let y = 65;
+  doc.text(`Species: ${c.species}`, 20, y);
+  doc.text(`Location: ${c.location.label}`, 110, y);
+  y += 6;
+  doc.text(`Condition: ${c.probableCondition}`, 20, y);
+  doc.text(`Status: ${c.status.toUpperCase()}`, 110, y);
+  y += 6;
+  doc.text(`Reported By: ${c.reporterName}`, 20, y);
+  doc.text(`Reported On: ${new Date(c.createdAt).toLocaleDateString()}`, 110, y);
+  y += 6;
+  doc.text(`NGO Partner: ${c.ngo || 'Karuna Volunteers'}`, 20, y);
+  doc.text(`Estimated Cost: INR ${c.estimatedCostInr.toLocaleString('en-IN')}`, 110, y);
+
+  // Divider
+  y += 10;
+  doc.setDrawColor(226, 232, 240);
+  doc.line(20, y, 190, y);
+
+  // Donations Table Header
+  y += 12;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('DONATIONS RECEIVED', 20, y);
+
+  y += 8;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(20, y, 170, 8, 'F');
+  
+  doc.setFontSize(9);
+  doc.text('Date', 22, y + 6);
+  doc.text('Donor Name', 55, y + 6);
+  doc.text('Method', 105, y + 6);
+  doc.text('Amount', 135, y + 6);
+  doc.text('Offset Reference', 160, y + 6);
+
+  doc.setFont('helvetica', 'normal');
+  
+  let totalRaised = 0;
+  if (c.donations && c.donations.length > 0) {
+    c.donations.forEach((d) => {
+      totalRaised += d.amountInr;
+      y += 8;
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(new Date(d.ts).toLocaleDateString(), 22, y + 5);
+      doc.text(d.donorName || 'Anonymous', 55, y + 5);
+      doc.text(d.paymentMethod || 'UPI', 105, y + 5);
+      doc.text(`INR ${d.amountInr.toLocaleString('en-IN')}`, 135, y + 5);
+      doc.text(d.billOffsetDetails || 'General Care', 160, y + 5);
+    });
+  } else {
+    y += 8;
+    doc.text('No donations logged against this case yet.', 22, y + 5);
+  }
+
+  // Donation Total
+  y += 12;
+  doc.setDrawColor(226, 232, 240);
+  doc.line(20, y, 190, y);
+  
+  y += 8;
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Total Donations Raised: INR ${totalRaised.toLocaleString('en-IN')}`, 20, y);
+
+  // Timeline Events
+  y += 15;
+  if (y > 250) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('CASE TIMELINE & AUDIT LOG', 20, y);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  
+  if (c.events && c.events.length > 0) {
+    c.events.forEach((ev) => {
+      y += 8;
+      if (y > 275) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.text(`[${new Date(ev.ts).toLocaleDateString()}] ${ev.actor}:`, 22, y + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.text(ev.details, 75, y + 5);
+    });
+  }
+
+  // Footer stamp
+  y += 20;
+  if (y > 275) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setDrawColor(15, 118, 110);
+  doc.rect(20, y, 170, 15);
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(8);
+  doc.text('This is a system-generated, blockchain-anchored immutable ledger for animal welfare audit transparency.', 25, y + 6);
+  doc.text('Karuṇā Animal Rescue Network is registered under Section 80G of the Income Tax Act.', 25, y + 10);
+
+  doc.save(`Karuna_Ledger_Case_${c.id}.pdf`);
+};

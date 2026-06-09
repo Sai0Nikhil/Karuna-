@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useCaseStore, donationProgress, totalDonated, isDonatable } from '../store/caseStore';
 import { useRouter } from '../store/router';
 import { Case } from '../types';
-import { CaseCard, Empty, formatInr, ProgressBar, SeverityChip, StatusChip, relativeTime } from './shared';
+import { CaseCard, Empty, formatInr, ProgressBar, SeverityChip, StatusChip, relativeTime, downloadPdfLedger } from './shared';
 
 export const DonationsList: React.FC = () => {
   const { cases } = useCaseStore();
@@ -53,6 +53,12 @@ export const PerCaseDonation: React.FC<{ caseId: string }> = ({ caseId }) => {
   const [message, setMessage] = useState('');
   const [justDonated, setJustDonated] = useState(false);
 
+  // Razorpay simulation state
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'Netbanking'>('UPI');
+  const [selectedUpiApp, setSelectedUpiApp] = useState('Google Pay');
+  const [paymentState, setPaymentState] = useState<'idle' | 'processing' | 'upi_pin' | 'verifying' | 'success'>('idle');
+
   if (!c) {
     return (
       <main className="container mx-auto p-6">
@@ -69,15 +75,41 @@ export const PerCaseDonation: React.FC<{ caseId: string }> = ({ caseId }) => {
   const raised = totalDonated(c);
   const pct = donationProgress(c);
 
-  const submit = () => {
-    addDonation(c.id, {
-      donorName: donorName.trim() || 'Anonymous',
-      amountInr: Math.max(1, amount),
-      message: message.trim() || undefined,
-    });
-    setJustDonated(true);
-    setAmount(500);
-    setMessage('');
+  const handleDonateClick = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (amount <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    setPaymentState('idle');
+    setShowCheckoutModal(true);
+  };
+
+  const handlePay = () => {
+    setPaymentState('processing');
+    setTimeout(() => {
+      if (paymentMethod === 'UPI') {
+        setPaymentState('upi_pin');
+      } else {
+        setPaymentState('verifying');
+      }
+      setTimeout(() => {
+        setPaymentState('success');
+        setTimeout(() => {
+          addDonation(c.id, {
+            donorName: donorName.trim() || 'Anonymous',
+            amountInr: Math.max(1, amount),
+            message: message.trim() || undefined,
+            paymentMethod,
+            billOffsetDetails: `Case #${c.id} Vet Treatment Offset`,
+          });
+          setShowCheckoutModal(false);
+          setJustDonated(true);
+          setAmount(500);
+          setMessage('');
+        }, 1200);
+      }, 1500);
+    }, 1500);
   };
 
   return (
@@ -120,13 +152,18 @@ export const PerCaseDonation: React.FC<{ caseId: string }> = ({ caseId }) => {
           <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
             <h3 className="font-semibold text-slate-800">Donate to this case</h3>
             <p className="text-xs text-slate-500 mb-3">
-              Demo flow — no real payment. In production this calls Razorpay/PayU/Stripe and writes
-              an immutable event to the per-case ledger.
+              This triggers a sandbox payment simulation styled like a Razorpay checkout sheet.
             </p>
 
             {justDonated && (
-              <div className="bg-green-50 border border-green-200 text-green-800 rounded p-2 text-sm mb-3">
-                ✓ Thank you! Your donation has been added to {c.id}'s ledger.
+              <div className="bg-green-50 border border-green-200 text-green-800 rounded p-3 text-sm mb-3 flex flex-col gap-2">
+                <div>✓ Thank you! Your donation has been added to {c.id}'s ledger.</div>
+                <button
+                  onClick={() => downloadPdfLedger(c)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-1 px-3 rounded text-xs self-start flex items-center gap-1"
+                >
+                  📥 Download PDF Ledger
+                </button>
               </div>
             )}
 
@@ -150,13 +187,23 @@ export const PerCaseDonation: React.FC<{ caseId: string }> = ({ caseId }) => {
             <input className="w-full p-2 border border-slate-300 rounded mt-1 text-sm"
               value={message} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Get well soon!" />
 
-            <button onClick={submit} className="w-full mt-4 bg-rose-600 text-white font-semibold py-2 rounded hover:bg-rose-700">
+            <button onClick={handleDonateClick} className="w-full mt-4 bg-rose-600 text-white font-semibold py-2 rounded hover:bg-rose-700">
               Donate {formatInr(amount)} ❤
             </button>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-            <h3 className="font-semibold text-slate-800 mb-2">Per-case ledger ({c.donations.length})</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-semibold text-slate-800">Per-case ledger ({c.donations.length})</h3>
+              {c.donations.length > 0 && (
+                <button
+                  onClick={() => downloadPdfLedger(c)}
+                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1 px-2.5 rounded border border-slate-300 flex items-center gap-1"
+                >
+                  📥 Export PDF
+                </button>
+              )}
+            </div>
             {c.donations.length === 0 ? (
               <p className="text-sm text-slate-500">No donations yet — be the first.</p>
             ) : (
@@ -166,7 +213,9 @@ export const PerCaseDonation: React.FC<{ caseId: string }> = ({ caseId }) => {
                     <div className="min-w-0">
                       <div className="font-medium text-slate-800 truncate">{d.donorName}</div>
                       {d.message && <div className="text-xs text-slate-500 italic truncate">"{d.message}"</div>}
-                      <div className="text-xs text-slate-400">{new Date(d.ts).toLocaleString()}</div>
+                      <div className="text-xs text-slate-400">
+                        {new Date(d.ts).toLocaleString()} · <span className="font-semibold text-indigo-600">{d.paymentMethod || 'UPI'}</span>
+                      </div>
                     </div>
                     <div className="text-right text-rose-700 font-semibold whitespace-nowrap">{formatInr(d.amountInr)}</div>
                   </li>
@@ -176,6 +225,117 @@ export const PerCaseDonation: React.FC<{ caseId: string }> = ({ caseId }) => {
           </div>
         </div>
       </div>
+
+      {/* Razorpay Simulation Modal */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden border border-slate-100 flex flex-col">
+            {/* Razorpay-style Header */}
+            <div className="bg-[#1F2438] text-white p-4 flex justify-between items-center">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🐾</span>
+                  <span className="font-bold tracking-wide text-lg">KARUNA</span>
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">Secure Sandbox Checkout</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-slate-400">Amount to pay</div>
+                <div className="text-lg font-bold text-emerald-400">₹{amount}</div>
+              </div>
+            </div>
+
+            {paymentState === 'idle' ? (
+              <div className="p-5 flex-1 space-y-4">
+                <div className="text-sm font-semibold text-slate-700">Select Payment Method</div>
+                
+                {/* UPI Option */}
+                <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${paymentMethod === 'UPI' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                  <input type="radio" checked={paymentMethod === 'UPI'} onChange={() => setPaymentMethod('UPI')} className="text-indigo-600 focus:ring-indigo-500" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-slate-800">UPI (Google Pay, PhonePe)</div>
+                    <div className="text-xs text-slate-500">Pay instantly using any UPI app</div>
+                  </div>
+                  <span className="text-lg">📱</span>
+                </label>
+
+                {/* Card Option */}
+                <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${paymentMethod === 'Card' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                  <input type="radio" checked={paymentMethod === 'Card'} onChange={() => setPaymentMethod('Card')} className="text-indigo-600 focus:ring-indigo-500" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-slate-800">Card (Credit/Debit)</div>
+                    <div className="text-xs text-slate-500">Visa, MasterCard, RuPay supported</div>
+                  </div>
+                  <span className="text-lg">💳</span>
+                </label>
+
+                {/* Netbanking Option */}
+                <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${paymentMethod === 'Netbanking' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                  <input type="radio" checked={paymentMethod === 'Netbanking'} onChange={() => setPaymentMethod('Netbanking')} className="text-indigo-600 focus:ring-indigo-500" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-slate-800">Netbanking</div>
+                    <div className="text-xs text-slate-500">All major Indian banks</div>
+                  </div>
+                  <span className="text-lg">🏦</span>
+                </label>
+
+                {paymentMethod === 'UPI' && (
+                  <div className="grid grid-cols-3 gap-2 pt-2">
+                    {['Google Pay', 'PhonePe', 'Paytm'].map((app) => (
+                      <button key={app} onClick={() => setSelectedUpiApp(app)} className={`py-1.5 px-2 rounded border text-xs font-medium ${selectedUpiApp === app ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+                        {app}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4 border-t border-slate-100">
+                  <button onClick={() => setShowCheckoutModal(false)} className="flex-1 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded hover:bg-slate-200">
+                    Cancel
+                  </button>
+                  <button onClick={handlePay} className="flex-1 py-2 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 shadow">
+                    Pay ₹{amount}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 flex-1 flex flex-col items-center justify-center text-center space-y-4">
+                {paymentState === 'processing' && (
+                  <>
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
+                    <div className="text-slate-800 font-medium text-lg">Processing payment...</div>
+                    <div className="text-xs text-slate-500">Please do not refresh or press back</div>
+                  </>
+                )}
+                {paymentState === 'upi_pin' && (
+                  <>
+                    <div className="relative">
+                      <div className="animate-ping absolute inset-0 rounded-full h-12 w-12 bg-indigo-400 opacity-75"></div>
+                      <div className="rounded-full h-12 w-12 bg-indigo-600 flex items-center justify-center text-white text-lg font-bold">🔒</div>
+                    </div>
+                    <div className="text-slate-800 font-medium text-lg">Confirming secure UPI PIN...</div>
+                    <div className="text-xs text-slate-500">A request has been sent to your {selectedUpiApp} app</div>
+                  </>
+                )}
+                {paymentState === 'verifying' && (
+                  <>
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-amber-600 border-t-transparent"></div>
+                    <div className="text-slate-800 font-medium text-lg">Verifying transaction...</div>
+                    <div className="text-xs text-slate-500">Authenticating with secure gateway</div>
+                  </>
+                )}
+                {paymentState === 'success' && (
+                  <>
+                    <div className="rounded-full h-16 w-16 bg-emerald-100 flex items-center justify-center text-emerald-600 text-3xl font-bold animate-bounce">✓</div>
+                    <div className="text-emerald-800 font-bold text-xl">Transaction Successful!</div>
+                    <div className="text-xs text-slate-500">Your donation was logged against immutable audit ledger</div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 };
