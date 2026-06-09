@@ -8,6 +8,7 @@ interface AnalysisResultProps {
   data: AnalysisResultData;
   vets: VeterinaryContact[];
   language: Language;
+  onSpeciesChange?: (species: string) => void;
 }
 
 const severityClasses = {
@@ -17,7 +18,7 @@ const severityClasses = {
   unknown: 'bg-gray-100 text-gray-800',
 };
 
-export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, vets, language }) => {
+export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, vets, language, onSpeciesChange }) => {
   const [visuals, setVisuals] = useState<Record<number, string>>({});       // Stores text instructions from Claude
   const [loadingVisuals, setLoadingVisuals] = useState<Record<number, boolean>>({});
 
@@ -127,9 +128,26 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, vets, lang
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
-             <div className="flex items-center gap-2">
+             <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-gray-700">Animal:</span>
-                <span className="text-lg text-gray-900 capitalize">{data.animal}</span>
+                <span className="text-lg text-gray-900 capitalize font-medium">{data.animal}</span>
+                {onSpeciesChange && (
+                  <div className="inline-flex items-center gap-1.5 ml-3 bg-teal-50 border border-teal-200 rounded-full px-2.5 py-0.5 text-xs text-teal-800">
+                    <span>Not correct? Change to:</span>
+                    <select
+                      onChange={(e) => onSpeciesChange(e.target.value)}
+                      defaultValue=""
+                      className="bg-white border border-teal-300 rounded text-xs px-1.5 py-0.5 text-teal-900 font-medium focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    >
+                      <option value="" disabled>Select...</option>
+                      <option value="dog">🐕 Dog</option>
+                      <option value="cat">🐈 Cat</option>
+                      <option value="cow">🐄 Cow</option>
+                      <option value="bird">🦜 Bird</option>
+                      <option value="other">❓ Other</option>
+                    </select>
+                  </div>
+                )}
              </div>
 
              <div className="flex items-center gap-2">

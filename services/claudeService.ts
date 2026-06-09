@@ -236,7 +236,13 @@ const pickLocalSupport = (
   let chosen = all.slice(0, 3);
   if (typeof location === 'string') {
     const q = location.toLowerCase();
-    const matches = all.filter((c) => c.address.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
+    const tokens = q.split(/\s+/).filter((t) => t.length > 2);
+    const matches = all.filter((c) => {
+      const addr = c.address.toLowerCase();
+      const nm = c.name.toLowerCase();
+      if (addr.includes(q) || nm.includes(q)) return true;
+      return tokens.some((t) => addr.includes(t) || nm.includes(t));
+    });
     if (matches.length) chosen = matches.slice(0, 3);
   }
   return chosen.map((c) => ({
@@ -257,14 +263,62 @@ const mockAnalyse = async (
   const langKey = (T as any)[language] ? language : Language.ENGLISH;
   const t = (T as any)[langKey] as typeof T.english;
   const c = pickCondition(imageDataUrl);
-  const speciesLabel = c.species === 'dog' ? t.dogFound : c.species === 'cat' ? t.catFound : t.cowFound;
-  const firstAidSteps = t.aidSteps[c.conditionKey] || t.aidSteps.generic;
-  const probableCondition = description ? `${c.probableCondition}. Reporter note: "${description}".` : c.probableCondition;
+
+  let speciesLabel = c.species === 'dog' ? t.dogFound : c.species === 'cat' ? t.catFound : t.cowFound;
+  let severity = c.severity;
+  let conditionKey = c.conditionKey;
+  let probableCondition = c.probableCondition;
+
+  const descLower = description.toLowerCase();
+
+  // Keyword override for species
+  if (descLower.includes('cow') || descLower.includes('cattle') || descLower.includes('calf') || descLower.includes('bull') || descLower.includes('bovine')) {
+    speciesLabel = t.cowFound;
+    probableCondition = 'Bovine health issue';
+    conditionKey = 'wound';
+    severity = 'medium';
+  } else if (descLower.includes('cat') || descLower.includes('kitten')) {
+    speciesLabel = t.catFound;
+    probableCondition = 'Feline health issue';
+    conditionKey = 'wound';
+    severity = 'medium';
+  } else if (descLower.includes('dog') || descLower.includes('puppy') || descLower.includes('pariah')) {
+    speciesLabel = t.dogFound;
+    probableCondition = 'Canine health issue';
+    conditionKey = 'wound';
+    severity = 'medium';
+  }
+
+  // Keyword override for condition type
+  if (descLower.includes('bleeding') || descLower.includes('blood') || descLower.includes('intestine')) {
+    conditionKey = 'bleeding';
+    severity = 'high';
+    probableCondition = speciesLabel.includes('cow') || speciesLabel.includes('Cow') || speciesLabel.includes('Cattle') || speciesLabel.includes('ఆవు') || speciesLabel.includes('गाय')
+      ? 'Severe internal bleeding / gastrointestinal distress in street cattle'
+      : speciesLabel.includes('cat') || speciesLabel.includes('Cat') || speciesLabel.includes('పిల్లి') || speciesLabel.includes('बिल्ली')
+      ? 'Active bleeding from open wound'
+      : 'Severe deep tissue wound with active bleeding';
+  } else if (descLower.includes('broken') || descLower.includes('fracture') || descLower.includes('limp') || descLower.includes('leg')) {
+    conditionKey = 'fracture';
+    severity = 'high';
+    probableCondition = 'Suspected bone fracture or joint dislocation';
+  } else if (descLower.includes('mange') || descLower.includes('skin') || descLower.includes('itch')) {
+    conditionKey = 'mange';
+    severity = 'medium';
+    probableCondition = 'Severe skin infestation, likely sarcoptic mange';
+  } else if (descLower.includes('starv') || descLower.includes('thin') || descLower.includes('weak') || descLower.includes('emaciat')) {
+    conditionKey = 'generic';
+    severity = 'low';
+    probableCondition = 'Mild emaciation and dehydration, needs feeding support';
+  }
+
+  probableCondition = description ? `${probableCondition}. Reporter note: "${description}".` : probableCondition;
+  const firstAidSteps = t.aidSteps[conditionKey] || t.aidSteps.generic;
 
   return {
     animal: speciesLabel,
     isInjured: true,
-    injurySeverity: c.severity,
+    injurySeverity: severity as any,
     probableCondition,
     recommendedMedicines: {
       tablets: [

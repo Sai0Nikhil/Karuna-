@@ -121,6 +121,22 @@ export const CitizenReportFlow: React.FC = () => {
     }
   }, [imageDataUrl, description, language, location]);
 
+  const handleSpeciesChange = (newSpecies: string) => {
+    if (analysis) {
+      const m: Record<string, string> = {
+        dog: 'Indian Pariah Dog (street dog)',
+        cat: 'Domestic Short-Hair Cat (street cat)',
+        cow: 'Indian Cow (street / community)',
+        bird: 'Bird',
+        other: 'Other animal',
+      };
+      setAnalysis({
+        ...analysis,
+        animal: m[newSpecies.toLowerCase()] || newSpecies,
+      });
+    }
+  };
+
   const handleSaveCase = async () => {
     if (!analysis || !imageDataUrl || !location) return;
     const sev = severityFromAnalysis(analysis);
@@ -375,7 +391,7 @@ export const CitizenReportFlow: React.FC = () => {
 
       {analysis && !isLoading && (
         <div className="max-w-4xl mx-auto mt-8 space-y-6">
-          <AnalysisResult data={analysis} vets={vets} language={language} />
+          <AnalysisResult data={analysis} vets={vets} language={language} onSpeciesChange={handleSpeciesChange} />
 
           {!savedCaseId ? (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

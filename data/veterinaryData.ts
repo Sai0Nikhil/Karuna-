@@ -96,9 +96,27 @@ export const ALL_VETERINARY_CONTACTS: Omit<VeterinaryContact, 'mapsLink'>[] = [
     address: 'Usmanpur, Delhi',
     phone: 'Contact MCD',
   },
-   {
+  {
     name: 'Delhi Govt. Veterinary Hospital, Bijwasan',
     address: 'Bijwasan, Delhi',
     phone: 'Contact MCD',
   },
+
+  // Tamil Nadu (Chennai)
+  {
+    name: 'Madras Veterinary College Teaching Hospital (Vepery)',
+    address: 'Vepery High Road, Vepery, Chennai, Tamil Nadu 600007',
+    phone: '044-25304000',
+  },
+  {
+    name: 'Blue Cross of India (Velachery)',
+    address: 'Velachery Road, Near IIT Madras, Velachery, Chennai, Tamil Nadu 600042',
+    phone: '044-22354985',
+  },
+  {
+    name: 'Sanchu Animal Hospital (Adyar)',
+    address: 'Adyar, Chennai, Tamil Nadu 600020',
+    phone: '9445170000',
+  }
 ];
+

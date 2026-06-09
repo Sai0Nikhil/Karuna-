@@ -11,6 +11,7 @@ import json
 import logging
 import re
 from typing import Any
+import urllib.parse
 
 import httpx
 
@@ -76,22 +77,214 @@ def _pick_mock(image_data_url: str) -> dict[str, Any]:
     return _MOCK_CONDITIONS[h % len(_MOCK_CONDITIONS)]
 
 
-def mock_triage(image_data_url: str, description: str = "") -> dict[str, Any]:
+_ALL_VETERINARY_CONTACTS = [
+    {
+        "name": "NTR Veterinary Super Specialty Hospital",
+        "address": "Bunder Road, Near Vijaya Dairy Parlour, Punammathota, Labbipet, Vijayawada, AP 520010",
+        "phone": "N/A",
+    },
+    {
+        "name": "Prathyusha Pet Clinic",
+        "address": "Indira Gandhi Municipal Stadium Complex, Labbipet, Vijayawada, AP 520010",
+        "phone": "N/A",
+    },
+    {
+        "name": "Bluewings Pet Clinic",
+        "address": "Veterinary Colony, Road Number 2, Vijayawada, AP 520008",
+        "phone": "N/A",
+    },
+    {
+        "name": "K-Petz Hospital (24-hour)",
+        "address": "Gunadala Poranki, Vijayawada, AP",
+        "phone": "N/A",
+    },
+    {
+        "name": "Care Well Dog Clinic",
+        "address": "Vijayawada, AP",
+        "phone": "N/A",
+    },
+    {
+        "name": "Veterinary Hospital, Guntur",
+        "address": "89, Old Bank St, Kothapeta, Guntur, AP 522001",
+        "phone": "N/A",
+    },
+    {
+        "name": "Pet Care Clinic, Visakhapatnam",
+        "address": "Banker Street, Opp Nr Function Hall, Murali Nagar, Visakhapatnam, AP 530007",
+        "phone": "N/A",
+    },
+    {
+        "name": "State Institute of Animal Health (SIAH)",
+        "address": "Tanuku, West Godavari, AP",
+        "phone": "N/A",
+    },
+    {
+        "name": "Animal Warriors Conservation Society (AWCS Hyderabad)",
+        "address": "Hyderabad, Telangana",
+        "phone": "Contact via Facebook",
+    },
+    {
+        "name": "AASRA Pets",
+        "address": "Bowrampet, Hyderabad, Telangana",
+        "phone": "Visit weaasra.org",
+    },
+    {
+        "name": "Humane World For Animals (NGO)",
+        "address": "Hyderabad, Telangana",
+        "phone": "N/A",
+    },
+    {
+        "name": "BREATH Animal Rescue Home",
+        "address": "Hyderabad, Telangana",
+        "phone": "N/A",
+    },
+    {
+        "name": "PETA India (Delhi Office)",
+        "address": "Delhi, NCR",
+        "phone": "www.petaindia.com",
+    },
+    {
+        "name": "Delhi Govt. Veterinary Hospital, Rohini",
+        "address": "Rohini, Delhi",
+        "phone": "Contact MCD",
+    },
+    {
+        "name": "Delhi Govt. Veterinary Hospital, Timarpur",
+        "address": "Timarpur, Delhi",
+        "phone": "Contact MCD",
+    },
+    {
+        "name": "Delhi Govt. Veterinary Hospital, Dwarka",
+        "address": "Dwarka, Delhi",
+        "phone": "Contact MCD",
+    },
+    {
+        "name": "Delhi Govt. Veterinary Hospital, Tughlakabad",
+        "address": "Tughlakabad, Delhi",
+        "phone": "Contact MCD",
+    },
+    {
+        "name": "Delhi Govt. Veterinary Hospital, Usmanpur",
+        "address": "Usmanpur, Delhi",
+        "phone": "Contact MCD",
+    },
+    {
+        "name": "Delhi Govt. Veterinary Hospital, Bijwasan",
+        "address": "Bijwasan, Delhi",
+        "phone": "Contact MCD",
+    },
+    {
+        "name": "Madras Veterinary College Teaching Hospital (Vepery)",
+        "address": "Vepery High Road, Vepery, Chennai, Tamil Nadu 600007",
+        "phone": "044-25304000",
+    },
+    {
+        "name": "Blue Cross of India (Velachery)",
+        "address": "Velachery Road, Near IIT Madras, Velachery, Chennai, Tamil Nadu 600042",
+        "phone": "044-22354985",
+    },
+    {
+        "name": "Sanchu Animal Hospital (Adyar)",
+        "address": "Adyar, Chennai, Tamil Nadu 600020",
+        "phone": "9445170000",
+    }
+]
+
+def pick_local_support(location: Any) -> list[dict[str, Any]]:
+    all_vets = _ALL_VETERINARY_CONTACTS
+    chosen = all_vets[:3]
+    if location:
+        q = ""
+        if isinstance(location, str):
+            q = location.lower()
+        elif hasattr(location, 'label') and location.label:
+            q = location.label.lower()
+        elif isinstance(location, dict) and location.get("label"):
+            q = location["label"].lower()
+            
+        if q:
+            tokens = [t for t in q.split() if len(t) > 2]
+            matches = []
+            for v in all_vets:
+                addr = v["address"].lower()
+                nm = v["name"].lower()
+                if q in addr or q in nm or any(t in addr or t in nm for t in tokens):
+                    matches.append(v)
+            if matches:
+                chosen = matches[:3]
+                
+    result = []
+    for v in chosen:
+        v_copy = dict(v)
+        query_str = v["name"] + " " + v["address"]
+        v_copy["mapsLink"] = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(query_str)}"
+        result.append(v_copy)
+    return result
+
+
+def mock_triage(image_data_url: str, description: str = "", location: Any = None) -> dict[str, Any]:
     c = _pick_mock(image_data_url)
-    steps = _AID_STEPS.get(c["injuryType"], _AID_STEPS["open_wound"])
-    cond = c["probableCondition"]
-    if description:
-        cond = f'{cond}. Reporter note: "{description}".'
+    species = c["species"]
+    injury_type = c["injuryType"]
     severity = {"high": "critical", "medium": "urgent", "low": "routine"}[c["severity"]]
+    probable_condition = c["probableCondition"]
+
+    desc_lower = description.lower() if description else ""
+
+    # Species keyword overrides
+    if "cow" in desc_lower or "cattle" in desc_lower or "calf" in desc_lower or "bull" in desc_lower or "bovine" in desc_lower:
+        species = "cow"
+        probable_condition = "Bovine health issue"
+        injury_type = "open_wound"
+        severity = "urgent"
+    elif "cat" in desc_lower or "kitten" in desc_lower:
+        species = "cat"
+        probable_condition = "Feline health issue"
+        injury_type = "open_wound"
+        severity = "urgent"
+    elif "dog" in desc_lower or "puppy" in desc_lower or "pariah" in desc_lower:
+        species = "dog"
+        probable_condition = "Canine health issue"
+        injury_type = "open_wound"
+        severity = "urgent"
+
+    # Injury type keyword overrides
+    if "bleeding" in desc_lower or "blood" in desc_lower or "intestine" in desc_lower:
+        injury_type = "bleeding"
+        severity = "critical"
+        probable_condition = "Severe internal bleeding / gastrointestinal distress in street cattle" if species == "cow" else "Active bleeding from open wound" if species == "cat" else "Severe deep tissue wound with active bleeding"
+    elif "broken" in desc_lower or "fracture" in desc_lower or "limp" in desc_lower or "leg" in desc_lower:
+        injury_type = "fracture"
+        severity = "critical"
+        probable_condition = "Suspected bone fracture or joint dislocation"
+    elif "mange" in desc_lower or "skin" in desc_lower or "itch" in desc_lower:
+        injury_type = "mange"
+        severity = "urgent"
+        probable_condition = "Severe skin infestation, likely sarcoptic mange"
+    elif "starv" in desc_lower or "thin" in desc_lower or "weak" in desc_lower or "emaciat" in desc_lower:
+        injury_type = "emaciation"
+        severity = "routine"
+        probable_condition = "Mild emaciation and dehydration, needs feeding support"
+
+    if description:
+        probable_condition = f'{probable_condition}. Reporter note: "{description}".'
+
+    steps = _AID_STEPS.get(injury_type, _AID_STEPS["open_wound"])
+    
+    # Cost estimation based on severity
+    cost_map = {"critical": 5500, "urgent": 2800, "routine": 1500}
+    estimated_cost = cost_map.get(severity, 1500)
+
     return {
-        "animal": c["species"],
-        "injuryType": c["injuryType"],
+        "animal": species,
+        "injuryType": injury_type,
         "severity": severity,
-        "probableCondition": cond,
+        "probableCondition": probable_condition,
         "firstAidSteps": steps,
-        "estimatedCostInr": c["estimatedCostInr"],
+        "estimatedCostInr": estimated_cost,
         "isInjured": True,
         "disclaimer": "AI-generated triage suggestion, not a veterinary diagnosis.",
+        "localSupport": pick_local_support(location),
     }
 
 
@@ -174,6 +367,7 @@ async def claude_triage(image_data_url: str, description: str, language: str,
     parsed_json = json.loads(m.group(0))
     parsed_json.setdefault("isInjured", True)
     parsed_json.setdefault("disclaimer", "AI-generated triage suggestion.")
+    parsed_json.setdefault("localSupport", pick_local_support(location))
     return parsed_json
 
 
@@ -186,4 +380,4 @@ async def triage(image_data_url: str, description: str = "",
             return await claude_triage(image_data_url, description, language, location)
         except Exception as e:
             log.warning("Claude triage failed, using mock: %s", e)
-    return mock_triage(image_data_url, description)
+    return mock_triage(image_data_url, description, location)
