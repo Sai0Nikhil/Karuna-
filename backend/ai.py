@@ -202,6 +202,30 @@ def pick_local_support(location: Any) -> list[dict[str, Any]]:
         elif isinstance(location, dict) and location.get("label"):
             q = location["label"].lower()
             
+        if not q:
+            lat, lon = None, None
+            if isinstance(location, dict):
+                lat = location.get("lat")
+                lon = location.get("lon")
+            elif hasattr(location, 'lat') and hasattr(location, 'lon'):
+                lat = getattr(location, 'lat')
+                lon = getattr(location, 'lon')
+                
+            if lat is not None and lon is not None:
+                try:
+                    lat_f = float(lat)
+                    lon_f = float(lon)
+                    if 12.5 <= lat_f <= 13.5 and 79.5 <= lon_f <= 80.8:
+                        q = "chennai"
+                    elif 17.0 <= lat_f <= 18.0 and 78.0 <= lon_f <= 79.0:
+                        q = "hyderabad"
+                    elif 28.0 <= lat_f <= 29.0 and 76.8 <= lon_f <= 77.8:
+                        q = "delhi"
+                    elif 16.0 <= lat_f <= 17.0 and 80.0 <= lon_f <= 81.0:
+                        q = "vijayawada"
+                except (ValueError, TypeError):
+                    pass
+
         if q:
             tokens = [t for t in q.split() if len(t) > 2]
             matches = []

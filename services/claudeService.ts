@@ -234,8 +234,24 @@ const pickLocalSupport = (
 ): VeterinaryContact[] => {
   const all = ALL_VETERINARY_CONTACTS;
   let chosen = all.slice(0, 3);
-  if (typeof location === 'string') {
-    const q = location.toLowerCase();
+  let searchLocation = location;
+
+  if (location && typeof location === 'object' && 'lat' in location && 'lon' in location) {
+    const lat = location.lat;
+    const lon = location.lon;
+    if (lat >= 12.5 && lat <= 13.5 && lon >= 79.5 && lon <= 80.8) {
+      searchLocation = 'chennai';
+    } else if (lat >= 17.0 && lat <= 18.0 && lon >= 78.0 && lon <= 79.0) {
+      searchLocation = 'hyderabad';
+    } else if (lat >= 28.0 && lat <= 29.0 && lon >= 76.8 && lon <= 77.8) {
+      searchLocation = 'delhi';
+    } else if (lat >= 16.0 && lat <= 17.0 && lon >= 80.0 && lon <= 81.0) {
+      searchLocation = 'vijayawada';
+    }
+  }
+
+  if (typeof searchLocation === 'string') {
+    const q = searchLocation.toLowerCase();
     const tokens = q.split(/\s+/).filter((t) => t.length > 2);
     const matches = all.filter((c) => {
       const addr = c.address.toLowerCase();
