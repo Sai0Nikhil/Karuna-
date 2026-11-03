@@ -1,6 +1,33 @@
 import { VeterinaryContact } from '../types';
 
 export const ALL_VETERINARY_CONTACTS: Omit<VeterinaryContact, 'mapsLink'>[] = [
+  // Tamil Nadu (Chennai & Near IIT Madras)
+  {
+    name: 'Blue Cross of India (Guindy)',
+    address: '72, Velachery Road, Guindy, Chennai, Tamil Nadu 600032 (Directly adjacent to IIT Madras)',
+    phone: '044-22354985 / 044-22300666',
+  },
+  {
+    name: 'Besant Memorial Animal Dispensary (BMAD)',
+    address: '11, Kalakshetra Road, Besant Nagar, Chennai, Tamil Nadu 600090 (Near IIT Madras/Adyar)',
+    phone: '+91 94450 70755',
+  },
+  {
+    name: 'Government Veterinary Hospital (Adyar)',
+    address: 'Kasturiba Nagar, 3rd Cross Street, Adyar, Chennai, Tamil Nadu 600020',
+    phone: '044-24422204',
+  },
+  {
+    name: 'Sanchu Animal Hospital (Adyar)',
+    address: 'New No. 19, Old No. 9, 3rd Avenue, Indira Nagar, Adyar, Chennai, Tamil Nadu 600020',
+    phone: '+91 94451 77777',
+  },
+  {
+    name: 'People For Animals (PFA Chennai)',
+    address: 'Besant Nagar, Chennai, Tamil Nadu 600090',
+    phone: '044-24918231',
+  },
+
   // Andhra Pradesh
   {
     name: 'NTR Veterinary Super Specialty Hospital',
@@ -96,27 +123,9 @@ export const ALL_VETERINARY_CONTACTS: Omit<VeterinaryContact, 'mapsLink'>[] = [
     address: 'Usmanpur, Delhi',
     phone: 'Contact MCD',
   },
-  {
+   {
     name: 'Delhi Govt. Veterinary Hospital, Bijwasan',
     address: 'Bijwasan, Delhi',
     phone: 'Contact MCD',
   },
-
-  // Tamil Nadu (Chennai)
-  {
-    name: 'Madras Veterinary College Teaching Hospital (Vepery)',
-    address: 'Vepery High Road, Vepery, Chennai, Tamil Nadu 600007',
-    phone: '044-25304000',
-  },
-  {
-    name: 'Blue Cross of India (Velachery)',
-    address: 'Velachery Road, Near IIT Madras, Velachery, Chennai, Tamil Nadu 600042',
-    phone: '044-22354985',
-  },
-  {
-    name: 'Sanchu Animal Hospital (Adyar)',
-    address: 'Adyar, Chennai, Tamil Nadu 600020',
-    phone: '9445170000',
-  }
 ];
-

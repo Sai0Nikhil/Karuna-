@@ -6,6 +6,5 @@ export const LANGUAGES = [
   { value: Language.HINDI, label: 'हिन्दी (Hindi)', code: 'hi-IN' },
 ];
 
-// Claude models
-export const MODEL_NAME = 'claude-sonnet-4-20250514'; // Best for vision + JSON
-export const CHAT_MODEL_NAME = 'claude-sonnet-4-20250514'; // For Sita chat
+export const MODEL_NAME = 'gemini-2.5-flash';
+export const IMAGE_MODEL_NAME = 'gemini-2.5-flash-image';

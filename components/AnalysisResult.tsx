@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { AnalysisResultData, Language, VeterinaryContact } from '../types';
 import { LANGUAGES } from '../constants';
-import { generateFirstAidVisual } from '../services/claudeService';
+import { generateFirstAidVisual } from '../services/geminiService';
 import { Loader } from './Loader';
 
 interface AnalysisResultProps {
   data: AnalysisResultData;
   vets: VeterinaryContact[];
   language: Language;
-  onSpeciesChange?: (species: string) => void;
 }
 
 const severityClasses = {
@@ -18,8 +17,8 @@ const severityClasses = {
   unknown: 'bg-gray-100 text-gray-800',
 };
 
-export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, vets, language, onSpeciesChange }) => {
-  const [visuals, setVisuals] = useState<Record<number, string>>({});       // Stores text instructions from Claude
+export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, vets, language }) => {
+  const [visuals, setVisuals] = useState<Record<number, string>>({});
   const [loadingVisuals, setLoadingVisuals] = useState<Record<number, boolean>>({});
 
   const handleSpeak = () => {
@@ -86,11 +85,11 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, vets, lang
 
     setLoadingVisuals(prev => ({ ...prev, [index]: true }));
     try {
-      const instructions = await generateFirstAidVisual(step, data.animal);
-      setVisuals(prev => ({ ...prev, [index]: instructions }));
+      const imageUrl = await generateFirstAidVisual(step, data.animal);
+      setVisuals(prev => ({ ...prev, [index]: imageUrl }));
     } catch (error) {
       console.error(error);
-      alert('Failed to generate detailed instructions. Please try again.');
+      alert('Failed to generate visual aid. Please try again.');
     } finally {
       setLoadingVisuals(prev => ({ ...prev, [index]: false }));
     }
@@ -128,26 +127,9 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, vets, lang
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
-             <div className="flex items-center gap-2 flex-wrap">
+             <div className="flex items-center gap-2">
                 <span className="font-semibold text-gray-700">Animal:</span>
-                <span className="text-lg text-gray-900 capitalize font-medium">{data.animal}</span>
-                {onSpeciesChange && (
-                  <div className="inline-flex items-center gap-1.5 ml-3 bg-teal-50 border border-teal-200 rounded-full px-2.5 py-0.5 text-xs text-teal-800">
-                    <span>Not correct? Change to:</span>
-                    <select
-                      onChange={(e) => onSpeciesChange(e.target.value)}
-                      defaultValue=""
-                      className="bg-white border border-teal-300 rounded text-xs px-1.5 py-0.5 text-teal-900 font-medium focus:outline-none focus:ring-1 focus:ring-teal-500"
-                    >
-                      <option value="" disabled>Select...</option>
-                      <option value="dog">🐕 Dog</option>
-                      <option value="cat">🐈 Cat</option>
-                      <option value="cow">🐄 Cow</option>
-                      <option value="bird">🦜 Bird</option>
-                      <option value="other">❓ Other</option>
-                    </select>
-                  </div>
-                )}
+                <span className="text-lg text-gray-900 capitalize">{data.animal}</span>
              </div>
 
              <div className="flex items-center gap-2">
@@ -242,11 +224,9 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, vets, lang
                      </div>
                      <div className="ml-7">
                         {visuals[index] ? (
-                            <div className="bg-white border border-blue-200 rounded-lg p-3 shadow-sm">
-                                <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-                                  {visuals[index]}
-                                </p>
-                                <span className="text-[10px] text-gray-400 mt-2 block">AI-generated instructions</span>
+                            <div className="relative">
+                                <img src={visuals[index]} alt={`Visual guide for step ${index + 1}`} className="rounded-lg shadow-sm border border-blue-200 max-h-48 w-auto object-contain bg-white" />
+                                <span className="text-[10px] text-gray-400 mt-1 block">AI-generated visual aid</span>
                             </div>
                         ) : (
                            <button 
@@ -254,8 +234,8 @@ export const AnalysisResult: React.FC<AnalysisResultProps> = ({ data, vets, lang
                              disabled={loadingVisuals[index]}
                              className="text-xs bg-white border border-blue-300 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-100 flex items-center gap-1 transition-colors shadow-sm"
                            >
-                              {loadingVisuals[index] ? <Loader size="sm" /> : '📋'}
-                              {loadingVisuals[index] ? 'Loading...' : 'Get Detailed Instructions'}
+                              {loadingVisuals[index] ? <Loader size="sm" /> : '📷'}
+                              {loadingVisuals[index] ? 'Generating...' : 'See Photo Guide'}
                            </button>
                         )}
                      </div>
